@@ -51,7 +51,11 @@ func (h GQLHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 							{{range .Fields}}
 								case "{{.Name}}":
 									{{.Name}} := &{{.Type}}{}
-									{{.Name}}.Resolve(ctx)
+									err := {{.Name}}.Resolve(ctx)
+									if err != nil {
+										w.Write([]byte("error"))
+										return
+									}
 									fmt.Println(ident.Name.Name)
 							{{end}}
 								default:
