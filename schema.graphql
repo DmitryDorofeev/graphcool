@@ -1,0 +1,17 @@
+
+schema {
+	query: Query
+}
+
+type Query {
+	todo: Todo
+}
+
+type Schema {
+	query: Query
+}
+
+type Todo {
+	title: String
+}
+
