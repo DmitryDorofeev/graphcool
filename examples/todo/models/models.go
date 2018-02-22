@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/DmitryDorofeev/graphcool/errors"
 	"github.com/DmitryDorofeev/graphcool/graphql"
 )
 
@@ -23,7 +24,7 @@ type User struct {
 	Friends graphql.Field `graphql:"friends:[Friends]"`
 }
 
-func (u *User) Resolve(ctx context.Context) error {
+func (u *User) Resolve(ctx context.Context) *errors.QueryError {
 	fmt.Println("hello, I am user resolver")
 	u.Name = "Dmitry Dorofeev"
 	return nil
@@ -31,12 +32,12 @@ func (u *User) Resolve(ctx context.Context) error {
 
 type Friends []User
 
-func (f *Friends) Resolve(ctx context.Context) error {
-	*f = append(*f, User{Name: "ba"}, User{Name: "ma"})
+func (f *Friends) Resolve(ctx context.Context) *errors.QueryError {
+	*f = append(*f, User{Name: "First Friend"}, User{Name: "Second Friend"})
 	return nil
 }
 
-func (t *Task) Resolve(ctx context.Context) error {
+func (t *Task) Resolve(ctx context.Context) *errors.QueryError {
 	fmt.Println("hello, I am todo resolver")
 	t.Title = "Schlafen"
 	t.Description = ""

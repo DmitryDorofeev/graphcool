@@ -172,11 +172,14 @@ func GetStructsInFile(filePath string) (*loader.PackageInfo, ParsedStructs, erro
 				parsedStruct.TypeName = name
 				ret[name] = *parsedStruct
 			}
-			continue
 		}
 
 		if a, ok := t.Underlying().(*types.Slice); ok {
-			ret[name] = ret[a.Elem().(*types.Named).Obj().Name()]
+			realName := a.Elem().(*types.Named).Obj().Name()
+			parsedStruct := ParsedStruct{
+				TypeName: realName,
+			}
+			ret[name] = parsedStruct
 		}
 
 	}

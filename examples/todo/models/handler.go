@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/DmitryDorofeev/graphcool/errors"
 	"github.com/DmitryDorofeev/graphcool/query"
 	"io/ioutil"
 	"net/http"
@@ -60,43 +61,35 @@ type FriendsMeta struct {
 	Value Friends
 }
 
-func (s *FriendsMeta) Lookup(ctx context.Context, selections []query.Selection) ([]byte, error) {
+func (s *FriendsMeta) Lookup(ctx context.Context, selections []query.Selection) ([]byte, *errors.QueryError) {
 	fmt.Println("Looking up Friends")
 	res := make([][]byte, 0)
-	for _, selection := range selections {
-		field, ok := selection.(*query.Field)
-		if !ok {
-			fmt.Println("cannot cast to Field")
-			continue
+	if len(selections) == 0 {
+		return nil, errors.Errorf("Objects must have selections (field Friends has no selections)")
+	}
+	for _, item := range s.Value {
+		f := UserMeta{
+			Value: item,
 		}
-		switch field.Name.Name {
 
-		default:
-			return nil, fmt.Errorf("unknown field " + field.Name.Name)
-		}
+		b, _ := f.Lookup(ctx, selections)
+		res = append(res, b)
 	}
 	return s.Marshal(ctx, selections, res)
 }
 
-func (s *FriendsMeta) Marshal(ctx context.Context, selections []query.Selection, fields [][]byte) ([]byte, error) {
+func (s *FriendsMeta) Marshal(ctx context.Context, selections []query.Selection, fields [][]byte) ([]byte, *errors.QueryError) {
 	fmt.Println("Marshal Friends")
 	buf := bytes.Buffer{}
-	buf.WriteString("{")
+	buf.WriteString("[")
 	for i, value := range fields {
-		field, ok := selections[i].(*query.Field)
-		if !ok {
-			continue
-		}
-
 		if i != 0 {
 			buf.WriteString(",")
 		}
 
-		buf.WriteString("\"" + field.Name.Name + "\"")
-		buf.WriteString(":")
 		buf.Write(value)
 	}
-	buf.WriteString("}")
+	buf.WriteString("]")
 	return buf.Bytes(), nil
 }
 
@@ -105,7 +98,7 @@ type QueryMeta struct {
 	Value Query
 }
 
-func (s *QueryMeta) Lookup(ctx context.Context, selections []query.Selection) ([]byte, error) {
+func (s *QueryMeta) Lookup(ctx context.Context, selections []query.Selection) ([]byte, *errors.QueryError) {
 	fmt.Println("Looking up Query")
 	res := make([][]byte, 0)
 	for _, selection := range selections {
@@ -132,13 +125,13 @@ func (s *QueryMeta) Lookup(ctx context.Context, selections []query.Selection) ([
 			res = append(res, innerField)
 
 		default:
-			return nil, fmt.Errorf("unknown field " + field.Name.Name)
+			return nil, errors.Errorf("unknown field " + field.Name.Name)
 		}
 	}
 	return s.Marshal(ctx, selections, res)
 }
 
-func (s *QueryMeta) Marshal(ctx context.Context, selections []query.Selection, fields [][]byte) ([]byte, error) {
+func (s *QueryMeta) Marshal(ctx context.Context, selections []query.Selection, fields [][]byte) ([]byte, *errors.QueryError) {
 	fmt.Println("Marshal Query")
 	buf := bytes.Buffer{}
 	buf.WriteString("{")
@@ -165,7 +158,7 @@ type TaskMeta struct {
 	Value Task
 }
 
-func (s *TaskMeta) Lookup(ctx context.Context, selections []query.Selection) ([]byte, error) {
+func (s *TaskMeta) Lookup(ctx context.Context, selections []query.Selection) ([]byte, *errors.QueryError) {
 	fmt.Println("Looking up Task")
 	res := make([][]byte, 0)
 	for _, selection := range selections {
@@ -216,13 +209,13 @@ func (s *TaskMeta) Lookup(ctx context.Context, selections []query.Selection) ([]
 			res = append(res, innerField)
 
 		default:
-			return nil, fmt.Errorf("unknown field " + field.Name.Name)
+			return nil, errors.Errorf("unknown field " + field.Name.Name)
 		}
 	}
 	return s.Marshal(ctx, selections, res)
 }
 
-func (s *TaskMeta) Marshal(ctx context.Context, selections []query.Selection, fields [][]byte) ([]byte, error) {
+func (s *TaskMeta) Marshal(ctx context.Context, selections []query.Selection, fields [][]byte) ([]byte, *errors.QueryError) {
 	fmt.Println("Marshal Task")
 	buf := bytes.Buffer{}
 	buf.WriteString("{")
@@ -249,7 +242,7 @@ type UserMeta struct {
 	Value User
 }
 
-func (s *UserMeta) Lookup(ctx context.Context, selections []query.Selection) ([]byte, error) {
+func (s *UserMeta) Lookup(ctx context.Context, selections []query.Selection) ([]byte, *errors.QueryError) {
 	fmt.Println("Looking up User")
 	res := make([][]byte, 0)
 	for _, selection := range selections {
@@ -284,13 +277,13 @@ func (s *UserMeta) Lookup(ctx context.Context, selections []query.Selection) ([]
 			res = append(res, innerField)
 
 		default:
-			return nil, fmt.Errorf("unknown field " + field.Name.Name)
+			return nil, errors.Errorf("unknown field " + field.Name.Name)
 		}
 	}
 	return s.Marshal(ctx, selections, res)
 }
 
-func (s *UserMeta) Marshal(ctx context.Context, selections []query.Selection, fields [][]byte) ([]byte, error) {
+func (s *UserMeta) Marshal(ctx context.Context, selections []query.Selection, fields [][]byte) ([]byte, *errors.QueryError) {
 	fmt.Println("Marshal User")
 	buf := bytes.Buffer{}
 	buf.WriteString("{")
@@ -333,7 +326,8 @@ func (h GQLHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			q := QueryMeta{}
 			fields, err := q.Lookup(ctx, o.Selections)
 			if err != nil {
-				w.Write([]byte("pzdc: " + err.Error()))
+				errBytes, _ := json.Marshal(err)
+				w.Write(errBytes)
 				return
 			}
 
