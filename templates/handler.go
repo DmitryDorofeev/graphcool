@@ -95,9 +95,12 @@ func (s *BoolMeta) Marshal() ([]byte) {
 func (h GQLHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
+	parseError := errors.Errorf("Cannot parse request")
+
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		w.Write([]byte("error"))
+		errBytes, _ := json.Marshal(parseError)
+		w.Write(errBytes)
 		return
 	}
 

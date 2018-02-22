@@ -12,7 +12,9 @@ import (
 func generateLookup(typeName, cases string) string {
 	return fmt.Sprintf(`
 		func (s *%sMeta) Lookup(ctx context.Context, selections []query.Selection) ([]byte, *errors.QueryError) {
-			fmt.Println("Looking up %s")
+			if len(selections) == 0 {
+				return nil, errors.Errorf("Objects must have selections (field %s has no selections)")
+			}
 			res := make([][]byte, 0)
 			for _, selection := range selections {
 				field, ok := selection.(*query.Field)
@@ -34,11 +36,10 @@ func generateLookup(typeName, cases string) string {
 func generateListLookup(typeName, itemType string) string {
 	return fmt.Sprintf(`
 		func (s *%sMeta) Lookup(ctx context.Context, selections []query.Selection) ([]byte, *errors.QueryError) {
-			fmt.Println("Looking up %s")
-			res := make([][]byte, 0)
 			if len(selections) == 0 {
 				return nil, errors.Errorf("Objects must have selections (field %s has no selections)")
 			}
+			res := make([][]byte, 0)
 			for _, item := range s.Value {
 				f := %sMeta{
 					Value: item,
@@ -49,7 +50,7 @@ func generateListLookup(typeName, itemType string) string {
 			}
 			return s.Marshal(ctx, selections, res)
 		}
-	`, typeName, typeName, typeName, itemType)
+	`, typeName, typeName, itemType)
 }
 
 // func generateListCases(fields []parser.StructField, s parser.ParsedStructs) (cases string) {
@@ -112,7 +113,7 @@ func generateCases(fields []parser.StructField, s parser.ParsedStructs) (lookups
 					f := %sMeta{
 					}
 
-					err := f.Value.Resolve(ctx)
+					err := f.Value.Resolve(ctx, s.Value)
 					if err != nil {
 						return nil, err
 					}
@@ -132,13 +133,12 @@ func generateCases(fields []parser.StructField, s parser.ParsedStructs) (lookups
 
 			lookups += fmt.Sprintf(`
 				case "%s":
-					fmt.Println("touch %s")
 					f := %sMeta{
 						Value: s.Value.%s,
 					}
 
 					res = append(res, f.Marshal())
-			`, fieldName, fieldName, typeName, n)
+			`, fieldName, typeName, n)
 		}
 
 	}

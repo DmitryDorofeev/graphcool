@@ -24,20 +24,21 @@ type User struct {
 	Friends graphql.Field `graphql:"friends:[Friends]"`
 }
 
-func (u *User) Resolve(ctx context.Context) *errors.QueryError {
-	fmt.Println("hello, I am user resolver")
+func (u *User) Resolve(ctx context.Context, obj interface{}) *errors.QueryError {
+	fmt.Println("hello, I am user resolver: ", obj)
 	u.Name = "Dmitry Dorofeev"
 	return nil
 }
 
 type Friends []User
 
-func (f *Friends) Resolve(ctx context.Context) *errors.QueryError {
-	*f = append(*f, User{Name: "First Friend"}, User{Name: "Second Friend"})
+func (f *Friends) Resolve(ctx context.Context, obj interface{}) *errors.QueryError {
+	name := obj.(User).Name
+	*f = append(*f, User{Name: "First Friend of " + name}, User{Name: "Second Friend of " + name})
 	return nil
 }
 
-func (t *Task) Resolve(ctx context.Context) *errors.QueryError {
+func (t *Task) Resolve(ctx context.Context, obj interface{}) *errors.QueryError {
 	fmt.Println("hello, I am todo resolver")
 	t.Title = "Schlafen"
 	t.Description = ""
