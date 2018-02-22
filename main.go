@@ -1,55 +1,44 @@
 package main
 
 import (
-	"go/parser"
-	"go/token"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
 	"path"
+	"strings"
 
-	"github.com/DmitryDorofeev/graphcool/codegen"
+	"github.com/DmitryDorofeev/graphcool/parser"
 	"github.com/DmitryDorofeev/graphcool/templates"
 )
 
 func main() {
-	pkgDir := os.Args[1]
+	file := os.Args[1]
+	parts := strings.Split(file, "/")
+	filePath := strings.Join(parts[:len(parts)-1], "/")
+	resultFile := path.Join(filePath, "handler.go")
 
-	fset := token.NewFileSet()
-	packages, err := parser.ParseDir(fset, pkgDir, nil, parser.ParseComments)
+	os.Remove(resultFile)
+
+	pkgInfo, structs, err := parser.GetStructsInFile(file)
+
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	s := codegen.Schema{
-		Types: make(map[string]codegen.Type),
-	}
+	fmt.Printf("%#v\n", structs)
 
-	for _, p := range packages {
-		s.Pkg = p.Name
-
-		for _, file := range p.Files {
-			for _, f := range file.Decls {
-				types, err := codegen.ExtractGQLStructs(f)
-				if err != nil {
-					continue
-				}
-
-				for k, v := range types {
-					s.Types[k] = v
-				}
-			}
-		}
-	}
-
-	schema, err := templates.ProcessSchema(s)
+	schema, err := templates.ProcessSchema(structs)
 	if err != nil {
 		log.Println(err)
 	}
-	handler, err := templates.ProcessHandler(s)
+	handler, err := templates.ProcessHandler(pkgInfo.Pkg.Name(), structs)
 	if err != nil {
 		log.Println(err)
 	}
 	ioutil.WriteFile("schema.graphql", []byte(schema), os.ModePerm)
-	ioutil.WriteFile(path.Join(pkgDir, "handler.go"), []byte(handler), os.ModePerm)
+	ioutil.WriteFile(resultFile, []byte(handler), os.ModePerm)
+
+	exec.Command("go", "fmt", resultFile).Run()
 }

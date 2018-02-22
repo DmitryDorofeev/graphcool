@@ -48,9 +48,9 @@ type Operation struct {
 type OperationType string
 
 const (
-	Query        OperationType = "QUERY"
-	Mutation                   = "MUTATION"
-	Subscription               = "SUBSCRIPTION"
+	Query        OperationType = "query"
+	Mutation                   = "mutation"
+	Subscription               = "subscription"
 )
 
 type Fragment struct {

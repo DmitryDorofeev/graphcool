@@ -5,13 +5,9 @@ import (
 	"html/template"
 )
 
-var schemaTmpl = `
-schema {
-	query: Query
-}
-{{range .Types}}
-type {{.Name}} {
-	{{range .Fields}}{{.Name}}: {{.Type}}{{end}}
+var schemaTmpl = `{{range $name, $struct := .}}
+type {{$name}} {
+	{{range $struct.Fields}}{{.Tag.Get "graphql"}}: {{.Type.Obj.Name}}{{end}}
 }
 {{end}}
 `

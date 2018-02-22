@@ -1,17 +1,11 @@
 
-schema {
-	query: Query
+type Friends {
+	
 }
 
 type Query {
-	todo: Todo
+	todo:Task: Task
 }
 
-type Schema {
-	query: Query
-}
-
-type Todo {
-	title: String
-}
-
+type Task {
+	title:String: 
