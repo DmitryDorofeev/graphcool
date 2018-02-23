@@ -99,6 +99,7 @@ func (h GQLHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	parseError := errors.Errorf("Cannot parse request")
 
 	var queryString string
+	var errs []*errors.QueryError
 	switch r.Method {
 		case http.MethodGet:
 			queryString = r.FormValue("query")
@@ -115,11 +116,11 @@ func (h GQLHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			json.Unmarshal(body, &req)
 			queryString = req.Query
 		default:
-			fmt.Println("err")
+			w.WriteHeader(http.StatusMethodNotAllowed)
 	}
 	res, err := query.Parse(queryString)
 	if err != nil {
-		w.Write([]byte("sas"))
+		w.Write([]byte("{\"errors\": []}"))
 	}
 
 	for _, o := range res.Operations {
@@ -128,13 +129,13 @@ func (h GQLHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				q := QueryMeta{}
 				fields, err := q.Lookup(ctx, o.Selections)
 				if err != nil {
-					errBytes, _ := json.Marshal(err)
-					w.Write(errBytes)
-					return
+					errs = []*errors.QueryError{
+						err,
+					}
 				}
-
 				resp, _ := json.Marshal(graphql.Response{
 					Data: fields,
+					Errors: errs,
 				})
 
 				w.Write(resp)
@@ -142,7 +143,7 @@ func (h GQLHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	w.Write([]byte("ba"))
+	w.Write([]byte("{\"errors\": []}"))
 }
 
 `

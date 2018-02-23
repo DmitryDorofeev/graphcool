@@ -53,31 +53,6 @@ func generateListLookup(typeName, itemType string) string {
 	`, typeName, typeName, itemType)
 }
 
-// func generateListCases(fields []parser.StructField, s parser.ParsedStructs) (cases string) {
-// 	for _, field := range fields {
-// 		t := field.Type()
-// 		tag := field.Tag().Get("graphql")
-// 		fieldName, _ := getFieldName(tag)
-// 		switch t.(type) {
-// 		case *types.Named:
-// 			cases += fmt.Sprintf(`
-// 					case "%s":
-// 				`, fieldName)
-// 		case *types.Basic:
-// 			cases += fmt.Sprintf(`
-// 					case "%s":
-// 						fmt.Println("touch %s")
-// 						f := %sMeta{
-// 							Value: s.Value.%s,
-// 						}
-
-// 						res = append(res, f.Marshal())
-// 				`, fieldName)
-// 		}
-// 	}
-// 	return
-// }
-
 func getFieldName(tag string) (fieldName string, typeName string) {
 	if strings.Contains(tag, ":") {
 		fieldInfo := parser.ParseField(tag)

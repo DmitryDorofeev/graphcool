@@ -7,6 +7,6 @@ import (
 )
 
 type Response struct {
-	Data   json.RawMessage     `json:"data"`
-	Errors []errors.QueryError `json:"errors"`
+	Data   json.RawMessage      `json:"data,omitempty"`
+	Errors []*errors.QueryError `json:"errors,omitempty"`
 }
