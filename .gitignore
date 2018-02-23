@@ -1,2 +1,3 @@
 schema.graphql
 generated.go
+vendor/
