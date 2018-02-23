@@ -43,6 +43,7 @@ import (
 	"fmt"
 	"github.com/DmitryDorofeev/graphcool/errors"
 	"github.com/DmitryDorofeev/graphcool/query"
+	"github.com/DmitryDorofeev/graphcool/graphql"
 )
 
 type GQLHandler struct {
@@ -97,18 +98,29 @@ func (h GQLHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	parseError := errors.Errorf("Cannot parse request")
 
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		errBytes, _ := json.Marshal(parseError)
-		w.Write(errBytes)
-		return
+	var queryString string
+	switch r.Method {
+		case http.MethodGet:
+			queryString = r.FormValue("query")
+		case http.MethodPost:
+			body, err := ioutil.ReadAll(r.Body)
+			if err != nil {
+				errBytes, _ := json.Marshal(parseError)
+				w.Write(errBytes)
+				return
+			}
+
+			req := Request{}
+
+			json.Unmarshal(body, &req)
+			queryString = req.Query
+		default:
+			fmt.Println("err")
 	}
-
-	req := Request{}
-
-	json.Unmarshal(body, &req)
-
-	res, err := query.Parse(req.Query)
+	res, err := query.Parse(queryString)
+	if err != nil {
+		w.Write([]byte("sas"))
+	}
 
 	for _, o := range res.Operations {
 		switch(o.Type) {
@@ -121,7 +133,11 @@ func (h GQLHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					return
 				}
 
-				w.Write(fields)
+				resp, _ := json.Marshal(graphql.Response{
+					Data: fields,
+				})
+
+				w.Write(resp)
 				return
 		}
 	}
