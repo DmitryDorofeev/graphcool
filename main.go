@@ -17,7 +17,7 @@ func main() {
 	file := os.Args[1]
 	parts := strings.Split(file, "/")
 	filePath := strings.Join(parts[:len(parts)-1], "/")
-	resultFile := path.Join(filePath, "handler.go")
+	resultFile := path.Join(filePath, "generated.go")
 
 	os.Remove(resultFile)
 
