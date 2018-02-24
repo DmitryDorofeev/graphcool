@@ -19,21 +19,28 @@ var cases = []struct {
 	Response  string
 	Variables map[string]string
 }{
+	// Simple query
 	{
 		Request:  `query{todo{title}}`,
 		Response: `{"data":{"todo":{"title":"test task"}}}`,
 	},
+
+	// Simple query with parameter
 	{
-		Request:  `query{todo{title(name:$name)}}`,
-		Response: `{"data":{"todo":{"title":"test task"}}}`,
+		Request:  `query{todo{user(name:$name){name}}}`,
+		Response: `{"data":{"todo":{"user":{"name":"test"}}}}`,
 		Variables: map[string]string{
 			"name": "test",
 		},
 	},
+
+	// Query with unknown field
 	{
 		Request:  `query{todo{teetle}}`,
 		Response: `{"errors":[{"message":"unknown field teetle"}]}`,
 	},
+
+	// Query with func
 	{
 		Request:  `query{getUser(name:$name){name}}`,
 		Response: `{"data":{"getUser":{"name":"test"}}}`,
@@ -41,21 +48,50 @@ var cases = []struct {
 			"name": "test",
 		},
 	},
+
+	// Query without 'query' word
 	{
 		Request:  `{todo{title}}`,
 		Response: `{"data":{"todo":{"title":"test task"}}}`,
 	},
+
+	// Query without selection
 	{
 		Request:  `query{todo}`,
 		Response: `{"errors":[{"message":"Objects must have selections (field Task has no selections)"}]}`,
 	},
+
+	// Query with nested selection
 	{
-		Request:  `query{todo{user{name}}}`,
-		Response: `{"data":{"todo":{"user":{"name":"Dmitry Dorofeev"}}}}`,
+		Request:  `query{todo{done,user{name}}}`,
+		Response: `{"data":{"todo":{"done":false,"user":{"name":"Dmitry Dorofeev"}}}}`,
 	},
+
+	// Query with list selection
 	{
 		Request:  `query{todo{user{name,friends{name}}}}`,
 		Response: `{"data":{"todo":{"user":{"name":"Dmitry Dorofeev","friends":[{"name":"First Friend of Dmitry Dorofeev"},{"name":"Second Friend of Dmitry Dorofeev"}]}}}}`,
+	},
+
+	// Named query
+	{
+		Request:  `query TodoUserWithFriends {todo{user{name,friends{name}}}}`,
+		Response: `{"data":{"todo":{"user":{"name":"Dmitry Dorofeev","friends":[{"name":"First Friend of Dmitry Dorofeev"},{"name":"Second Friend of Dmitry Dorofeev"}]}}}}`,
+	},
+
+	// Named query with params
+	{
+		Request:  `query GetUserWithFriends($name: String) {getUser(name:$name){name}}`,
+		Response: `{"data":{"getUser":{"name":"Dmitry Dorofeev"}}}`,
+	},
+
+	// Mutation
+	{
+		Request:  `mutation{updateUser(name:$name){name}}`,
+		Response: `{"data":{"updateUser":{"name":"Vlad_updated"}}}`,
+		Variables: map[string]string{
+			"name": "Vlad",
+		},
 	},
 }
 

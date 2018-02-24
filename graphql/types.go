@@ -4,6 +4,7 @@ import "fmt"
 
 type Field string
 type Getter string
+type Mutation string
 
 type Argument struct {
 	Name  string

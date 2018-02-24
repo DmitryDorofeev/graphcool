@@ -21,6 +21,11 @@ type StructField struct {
 	tag  reflect.StructTag // field tag; or nil
 }
 
+type Method struct {
+	Name string
+	Doc  *ast.CommentGroup
+}
+
 func (sf StructField) Name() string {
 	return sf.name
 }
@@ -41,6 +46,7 @@ type ParsedStruct struct {
 	TypeName string
 	Fields   []StructField
 	Doc      *ast.CommentGroup // line comments; or nil
+	Methods  []Method
 }
 
 func fileNameToPkgName(filePath, absFilePath string) string {
@@ -80,9 +86,11 @@ func loadProgramFromPackage(pkgFullName string) (*loader.Program, error) {
 }
 
 type structNamesInfo map[string]*ast.GenDecl
+type methodsInfo map[string]map[string]*ast.FuncDecl
 
 type structNamesVisitor struct {
 	names      structNamesInfo
+	methods    methodsInfo
 	curGenDecl *ast.GenDecl
 }
 
@@ -111,23 +119,33 @@ func (v *structNamesVisitor) Visit(n ast.Node) (w ast.Visitor) {
 
 			v.names[n.Name.Name] = typ
 		}
+
+	case *ast.FuncDecl:
+		if n.Recv == nil {
+			return v
+		}
+
+		// so dangerous
+		receiverName := n.Recv.List[0].Type.(*ast.StarExpr).X.(*ast.Ident).Name
+		v.methods[receiverName] = map[string]*ast.FuncDecl{n.Name.Name: n}
 	}
 
 	return v
 }
 
-func getStructNamesInFile(fname string) (structNamesInfo, error) {
+func getStructInfo(fname string) (*structNamesVisitor, error) {
 	fset := token.NewFileSet()
 	f, err := parser.ParseFile(fset, fname, nil, parser.ParseComments)
 	if err != nil {
 		return nil, fmt.Errorf("can't parse file %q: %s", fname, err)
 	}
 
-	v := structNamesVisitor{
-		names: structNamesInfo{},
+	v := &structNamesVisitor{
+		names:   structNamesInfo{},
+		methods: methodsInfo{},
 	}
-	ast.Walk(&v, f)
-	return v.names, nil
+	ast.Walk(v, f)
+	return v, nil
 }
 
 // GetStructsInFile lists all structures in file passed and returns them with all fields
@@ -137,7 +155,7 @@ func GetStructsInFile(filePath string) (*loader.PackageInfo, ParsedStructs, erro
 		return nil, nil, fmt.Errorf("can't get abs path for %s", filePath)
 	}
 
-	neededStructs, err := getStructNamesInFile(absFilePath)
+	neededStructs, err := getStructInfo(absFilePath)
 	if err != nil {
 		return nil, nil, fmt.Errorf("can't get struct names: %s", err)
 	}
@@ -160,14 +178,14 @@ func GetStructsInFile(filePath string) (*loader.PackageInfo, ParsedStructs, erro
 	for _, name := range scope.Names() {
 		obj := scope.Lookup(name)
 
-		if neededStructs[name] == nil {
+		if neededStructs.names[name] == nil {
 			continue
 		}
 
 		t := obj.Type().(*types.Named)
 
 		if s, ok := t.Underlying().(*types.Struct); ok {
-			parsedStruct := parseStruct(s, neededStructs[name])
+			parsedStruct := parseStruct(s, neededStructs, name)
 			if parsedStruct != nil {
 				parsedStruct.TypeName = name
 				ret[name] = *parsedStruct
@@ -204,6 +222,11 @@ func parseStructFields(s *types.Struct) []StructField {
 			continue
 		}
 
+		t := s.Tag(i)
+		if reflect.StructTag(t).Get("graphql") == "" {
+			continue
+		}
+
 		if f.Anonymous() {
 			e, ok := f.Type().Underlying().(*types.Struct)
 			if !ok {
@@ -223,27 +246,33 @@ func parseStructFields(s *types.Struct) []StructField {
 			continue
 		}
 
-		sf := newStructField(f, s.Tag(i))
+		sf := newStructField(f, t)
 		fields = append(fields, *sf)
 	}
 
 	return fields
 }
 
-func parseStruct(s *types.Struct, decl *ast.GenDecl) *ParsedStruct {
+func parseStruct(s *types.Struct, v *structNamesVisitor, name string) *ParsedStruct {
 	fields := parseStructFields(s)
-	if len(fields) == 0 {
-		// e.g. no exported fields in struct
-		return nil
-	}
 
 	var doc *ast.CommentGroup
-	if decl != nil { // decl can be nil for embedded structs
+	if decl := v.names[name]; decl != nil { // decl can be nil for embedded structs
 		doc = decl.Doc // can obtain doc only from AST
 	}
 
+	methods := make([]Method, 0)
+
+	for _, m := range v.methods[name] {
+		methods = append(methods, Method{
+			Name: m.Name.Name,
+			Doc:  m.Doc,
+		})
+	}
+
 	return &ParsedStruct{
-		Fields: fields,
-		Doc:    doc,
+		Fields:  fields,
+		Doc:     doc,
+		Methods: methods,
 	}
 }

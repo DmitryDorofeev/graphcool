@@ -69,21 +69,55 @@ func getFieldName(tag string) (fieldName string, typeName string) {
 	return
 }
 
-func generateCases(fields []parser.StructField, s parser.ParsedStructs) (lookups string) {
-	for _, field := range fields {
+func rangeFields(cur parser.ParsedStruct, s parser.ParsedStructs) (fields string) {
+	for _, method := range cur.Methods {
+		if method.Doc == nil {
+			continue
+		}
+
+		fieldName, typeName := getFieldName(strings.TrimSpace(strings.TrimPrefix(method.Doc.List[0].Text, "//")))
+		fields += generateMethod(fieldName, typeName, method.Name)
+	}
+
+	for _, field := range cur.Fields {
 		t := field.Type()
 		n := field.Name()
 
 		tag := field.Tag().Get("graphql")
 		fieldName, typeName := getFieldName(tag)
+		fields += generateField(t, n, typeName, fieldName)
+	}
+	return
+}
 
-		switch t.(type) {
-		case *types.Named:
-			if typeName == "" {
-				typeName = t.(*types.Named).Obj().Name()
-			}
+func generateMethod(fieldName, typeName, methodName string) string {
+	return generateComplexField(fieldName, typeName, methodName)
+}
 
-			lookups += fmt.Sprintf(`
+func generateField(t types.Type, n, typeName, fieldName string) (cases string) {
+	switch t.(type) {
+	case *types.Named:
+		if typeName == "" {
+			typeName = t.(*types.Named).Obj().Name()
+		}
+
+		cases += generateComplexField(fieldName, typeName, "")
+	case *types.Basic:
+		if typeName == "" {
+			typeName = strings.Title(t.(*types.Basic).Name())
+		}
+
+		cases += generateScalarField(fieldName, typeName, n)
+	}
+	return
+}
+
+func generateComplexField(fieldName, typeName, methodName string) string {
+	exec := "err := f.Value.Resolve(ctx, s.Value, args)"
+	if methodName != "" {
+		exec = fmt.Sprintf("val, err := s.Value.%s(ctx, s.Value, args)\nf.Value = val", methodName)
+	}
+	return fmt.Sprintf(`
 				case "%s":
 					f := %sMeta{
 					}
@@ -93,7 +127,7 @@ func generateCases(fields []parser.StructField, s parser.ParsedStructs) (lookups
 						args[arg.Name.Name] = arg.Value.Value(vars)
 					}
 
-					err := f.Value.Resolve(ctx, s.Value, args)
+					%s
 					if err != nil {
 						return nil, err
 					}
@@ -105,22 +139,16 @@ func generateCases(fields []parser.StructField, s parser.ParsedStructs) (lookups
 
 					res = append(res, innerField)
 
-			`, fieldName, typeName)
-		case *types.Basic:
-			if typeName == "" {
-				typeName = strings.Title(t.(*types.Basic).Name())
+			`, fieldName, typeName, exec)
+}
+
+func generateScalarField(fieldName, typeName, structFieldName string) string {
+	return fmt.Sprintf(`
+		case "%s":
+			f := %sMeta{
+				Value: s.Value.%s,
 			}
 
-			lookups += fmt.Sprintf(`
-				case "%s":
-					f := %sMeta{
-						Value: s.Value.%s,
-					}
-
-					res = append(res, f.Marshal())
-			`, fieldName, typeName, n)
-		}
-
-	}
-	return
+			res = append(res, f.Marshal())
+	`, fieldName, typeName, structFieldName)
 }

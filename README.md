@@ -7,7 +7,7 @@
 see `tests` folder :)
 
 ### Todo
-- [ ] Mutations
+- [x] Mutations
 - [x] Queries with params
 - [ ] Schema queries
 - [ ] Nullable types

@@ -15,6 +15,14 @@ type Query struct {
 type Mutation struct {
 }
 
+// updateUser(name:String!):User
+func (m *Mutation) UpdateUser(ctx context.Context, obj interface{}, args graphql.Arguments) (User, *errors.QueryError) {
+	name, _ := args.GetString("name")
+	return User{
+		Name: name + "_updated",
+	}, nil
+}
+
 type Task struct {
 	Title       string `graphql:"title:String"`
 	Description string `graphql:"description:String"`
@@ -33,12 +41,13 @@ type User struct {
 }
 
 func (u *User) Resolve(ctx context.Context, obj interface{}, args graphql.Arguments) *errors.QueryError {
-	name, _ := args.GetString("name")
-	if name == "test" {
-		u.Name = name
+	name, err := args.GetString("name")
+	if err != nil {
+		u.Name = "Dmitry Dorofeev"
 		return nil
 	}
-	u.Name = "Dmitry Dorofeev"
+
+	u.Name = name
 	return nil
 }
 

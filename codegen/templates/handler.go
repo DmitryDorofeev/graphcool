@@ -21,7 +21,7 @@ func generateTypes(structs parser.ParsedStructs) (types string) {
 			types += generateListLookup(name, s.TypeName)
 			types += generateListMarshaler(name)
 		} else {
-			types += generateLookup(name, generateCases(s.Fields, structs))
+			types += generateLookup(name, rangeFields(s, structs))
 			types += generateObjectMarshaler(name)
 		}
 	}
@@ -132,6 +132,21 @@ func (h GQLHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			case query.Query:
 				q := QueryMeta{}
 				fields, err := q.Lookup(ctx, o.Selections, req.Variables)
+				if err != nil {
+					errs = []*errors.QueryError{
+						err,
+					}
+				}
+				resp, _ := json.Marshal(graphql.Response{
+					Data: fields,
+					Errors: errs,
+				})
+
+				w.Write(resp)
+				return
+			case query.Mutation:
+				m := MutationMeta{}
+				fields, err := m.Lookup(ctx, o.Selections, req.Variables)
 				if err != nil {
 					errs = []*errors.QueryError{
 						err,
