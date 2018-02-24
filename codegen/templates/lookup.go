@@ -11,7 +11,7 @@ import (
 
 func generateLookup(typeName, cases string) string {
 	return fmt.Sprintf(`
-		func (s *%sMeta) Lookup(ctx context.Context, selections []query.Selection) ([]byte, *errors.QueryError) {
+		func (s *%sMeta) Lookup(ctx context.Context, selections []query.Selection, vars map[string] interface{}) ([]byte, *errors.QueryError) {
 			if len(selections) == 0 {
 				return nil, errors.Errorf("Objects must have selections (field %s has no selections)")
 			}
@@ -35,7 +35,7 @@ func generateLookup(typeName, cases string) string {
 
 func generateListLookup(typeName, itemType string) string {
 	return fmt.Sprintf(`
-		func (s *%sMeta) Lookup(ctx context.Context, selections []query.Selection) ([]byte, *errors.QueryError) {
+		func (s *%sMeta) Lookup(ctx context.Context, selections []query.Selection, vars map[string]interface{}) ([]byte, *errors.QueryError) {
 			if len(selections) == 0 {
 				return nil, errors.Errorf("Objects must have selections (field %s has no selections)")
 			}
@@ -45,7 +45,7 @@ func generateListLookup(typeName, itemType string) string {
 					Value: item,
 				}
 
-				b, _ := f.Lookup(ctx, selections)
+				b, _ := f.Lookup(ctx, selections, vars)
 				res = append(res, b)
 			}
 			return s.Marshal(ctx, selections, res)
@@ -88,12 +88,17 @@ func generateCases(fields []parser.StructField, s parser.ParsedStructs) (lookups
 					f := %sMeta{
 					}
 
-					err := f.Value.Resolve(ctx, s.Value)
+					args := make(graphql.Arguments, 0)
+					for _, arg := range field.Arguments {
+						args[arg.Name.Name] = arg.Value.Value(vars)
+					}
+
+					err := f.Value.Resolve(ctx, s.Value, args)
 					if err != nil {
 						return nil, err
 					}
 
-					innerField, err := f.Lookup(ctx, field.Selections)
+					innerField, err := f.Lookup(ctx, field.Selections, vars)
 					if err != nil {
 						return nil, err
 					}

@@ -2,10 +2,12 @@ package tests
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"testing"
 
@@ -13,12 +15,31 @@ import (
 )
 
 var cases = []struct {
-	Request  string
-	Response string
+	Request   string
+	Response  string
+	Variables map[string]string
 }{
 	{
 		Request:  `query{todo{title}}`,
 		Response: `{"data":{"todo":{"title":"test task"}}}`,
+	},
+	{
+		Request:  `query{todo{title(name:$name)}}`,
+		Response: `{"data":{"todo":{"title":"test task"}}}`,
+		Variables: map[string]string{
+			"name": "test",
+		},
+	},
+	{
+		Request:  `query{todo{teetle}}`,
+		Response: `{"errors":[{"message":"unknown field teetle"}]}`,
+	},
+	{
+		Request:  `query{getUser(name:$name){name}}`,
+		Response: `{"data":{"getUser":{"name":"test"}}}`,
+		Variables: map[string]string{
+			"name": "test",
+		},
 	},
 	{
 		Request:  `{todo{title}}`,
@@ -42,7 +63,8 @@ func TestGetQuery(t *testing.T) {
 	ts := httptest.NewServer(GQLHandler{})
 
 	for _, testCase := range cases {
-		resp, err := http.Get(ts.URL + fmt.Sprintf("?query=%s", testCase.Request))
+		vars, _ := json.Marshal(testCase.Variables)
+		resp, err := http.Get(ts.URL + fmt.Sprintf("?query=%s&variables=%s", url.QueryEscape(testCase.Request), vars))
 		if err != nil {
 			t.Error("error response")
 		}
@@ -59,7 +81,8 @@ func TestGetQuery(t *testing.T) {
 func TestPostQuery(t *testing.T) {
 	ts := httptest.NewServer(GQLHandler{})
 	for _, testCase := range cases {
-		body := []byte(fmt.Sprintf(`{"query":"%s"}`, testCase.Request))
+		vars, _ := json.Marshal(testCase.Variables)
+		body := []byte(fmt.Sprintf(`{"query":"%s","variables":%s}`, testCase.Request, vars))
 		resp, err := http.Post(ts.URL, "application/json", bytes.NewBuffer(body))
 		if err != nil {
 			t.Error("error response")

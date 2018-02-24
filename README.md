@@ -2,9 +2,15 @@
 
 ## Как тебе такое, Илон Маск?
 
+#### Example
+
+see `tests` folder :)
 
 ### Todo
 - [ ] Mutations
-- [ ] Requests with params
+- [x] Queries with params
+- [ ] Schema queries
 - [ ] Nullable types
+- [ ] Directives
+- [ ] Fragments
 - [ ] Subscriptions

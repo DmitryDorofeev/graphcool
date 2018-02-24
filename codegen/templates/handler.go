@@ -49,10 +49,6 @@ import (
 type GQLHandler struct {
 }
 
-type Request struct {
-	Query string ` + "`json:\"query\"`" + `
-}
-
 func NewHandler() GQLHandler {
 	return GQLHandler{}
 }
@@ -97,12 +93,17 @@ func (h GQLHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	parseError := errors.Errorf("Cannot parse request")
+	req := graphql.Request{}
 
-	var queryString string
 	var errs []*errors.QueryError
 	switch r.Method {
 		case http.MethodGet:
-			queryString = r.FormValue("query")
+			req.Query = r.URL.Query().Get("query")
+			vars := r.URL.Query().Get("variables")
+			if vars == "" {
+				break
+			}
+			json.Unmarshal([]byte(vars), &req.Variables)
 		case http.MethodPost:
 			body, err := ioutil.ReadAll(r.Body)
 			if err != nil {
@@ -111,23 +112,26 @@ func (h GQLHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			req := Request{}
-
-			json.Unmarshal(body, &req)
-			queryString = req.Query
+			err = json.Unmarshal(body, &req)
+			if err != nil {
+				errBytes, _ := json.Marshal(parseError)
+				w.Write(errBytes)
+				return
+			}
 		default:
 			w.WriteHeader(http.StatusMethodNotAllowed)
 	}
-	res, err := query.Parse(queryString)
+	res, err := query.Parse(req.Query)
 	if err != nil {
-		w.Write([]byte("{\"errors\": []}"))
+		w.Write([]byte(fmt.Sprintf("{\"errors\": [{\"message\":\"%s\"}]}", err)))
+		return
 	}
 
 	for _, o := range res.Operations {
 		switch(o.Type) {
 			case query.Query:
 				q := QueryMeta{}
-				fields, err := q.Lookup(ctx, o.Selections)
+				fields, err := q.Lookup(ctx, o.Selections, req.Variables)
 				if err != nil {
 					errs = []*errors.QueryError{
 						err,
@@ -142,8 +146,6 @@ func (h GQLHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				return
 		}
 	}
-
-	w.Write([]byte("{\"errors\": []}"))
 }
 
 `
