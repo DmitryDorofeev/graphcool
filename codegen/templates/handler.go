@@ -88,82 +88,59 @@ func (s *BoolMeta) Marshal() ([]byte) {
 
 	handlerTmpl += generateTypes(data)
 
-	handlerTmpl += `
-func (h GraphqlHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+	handlerTmpl += fmt.Sprintf(`
+		func (h GraphqlHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+			ctx := r.Context()
 
-	parseError := errors.Errorf("Cannot parse request")
-	req := graphql.Request{}
+			parseError := errors.Errorf("Cannot parse request")
+			req := graphql.Request{}
 
-	var errs []*errors.QueryError
-	switch r.Method {
-		case http.MethodGet:
-			req.Query = r.URL.Query().Get("query")
-			vars := r.URL.Query().Get("variables")
-			if vars == "" {
-				break
-			}
-			json.Unmarshal([]byte(vars), &req.Variables)
-		case http.MethodPost:
-			body, err := ioutil.ReadAll(r.Body)
-			if err != nil {
-				errBytes, _ := json.Marshal(parseError)
-				w.Write(errBytes)
-				return
-			}
-
-			err = json.Unmarshal(body, &req)
-			if err != nil {
-				errBytes, _ := json.Marshal(parseError)
-				w.Write(errBytes)
-				return
-			}
-		default:
-			w.WriteHeader(http.StatusMethodNotAllowed)
-	}
-	res, err := query.Parse(req.Query)
-	if err != nil {
-		w.Write([]byte(fmt.Sprintf("{\"errors\": [{\"message\":\"%s\"}]}", err)))
-		return
-	}
-
-	for _, o := range res.Operations {
-		switch(o.Type) {
-			case query.Query:
-				q := QueryMeta{}
-				fields, err := q.Lookup(ctx, o.Selections, req.Variables)
-				if err != nil {
-					errs = []*errors.QueryError{
-						err,
+			var errs []*errors.QueryError
+			var vars map[string]interface{}
+			switch r.Method {
+				case http.MethodGet:
+					req.Query = r.URL.Query().Get("query")
+					v := r.URL.Query().Get("variables")
+					if v == "" {
+						break
 					}
-				}
-				resp, _ := json.Marshal(graphql.Response{
-					Data: fields,
-					Errors: errs,
-				})
-
-				w.Write(resp)
-				return
-			case query.Mutation:
-				m := MutationMeta{}
-				fields, err := m.Lookup(ctx, o.Selections, req.Variables)
-				if err != nil {
-					errs = []*errors.QueryError{
-						err,
+					json.Unmarshal([]byte(v), &vars)
+				case http.MethodPost:
+					body, err := ioutil.ReadAll(r.Body)
+					if err != nil {
+						errBytes, _ := json.Marshal(parseError)
+						w.Write(errBytes)
+						return
 					}
-				}
-				resp, _ := json.Marshal(graphql.Response{
-					Data: fields,
-					Errors: errs,
-				})
 
-				w.Write(resp)
+					err = json.Unmarshal(body, &req)
+					if err != nil {
+						errBytes, _ := json.Marshal(errors.Errorf(err.Error()))
+						w.Write(errBytes)
+						return
+					}
+
+					vars, _ = req.Variables.(map[string]interface{})
+
+				default:
+					w.WriteHeader(http.StatusMethodNotAllowed)
+			}
+			res, err := query.Parse(req.Query)
+			if err != nil {
+				w.Write([]byte(fmt.Sprintf("{\"errors\": [{\"message\":\"%%s\"}]}", err)))
 				return
+			}
+
+			for _, o := range res.Operations {
+				switch(o.Type) {
+					case query.Query:
+						%s
+					case query.Mutation:
+						%s
+				}
+			}
 		}
-	}
-}
-
-`
+	`, handleQuery(data), handleMutation(data))
 
 	b := new(bytes.Buffer)
 	tmpl, err := template.New("").Parse(handlerTmpl)
@@ -173,4 +150,74 @@ func (h GraphqlHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	tmpl.Execute(b, data)
 	return b.String(), nil
+}
+
+func handleQuery(structs parser.ParsedStructs) string {
+	if _, ok := structs["Query"]; !ok {
+		return `
+			errs = []*errors.QueryError{
+				{
+					Message: "query resolvers are not present",
+				},
+			}
+
+			resp, _ := json.Marshal(graphql.Response{
+				Errors: errs,
+			})
+
+			w.Write(resp)
+			return
+		`
+	}
+	return `
+		q := QueryMeta{}
+		fields, err := q.Lookup(ctx, o.Selections, vars)
+		if err != nil {
+			errs = []*errors.QueryError{
+				err,
+			}
+		}
+		resp, _ := json.Marshal(graphql.Response{
+			Data: fields,
+			Errors: errs,
+		})
+
+		w.Write(resp)
+		return
+	`
+}
+
+func handleMutation(structs parser.ParsedStructs) string {
+	if _, ok := structs["Mutation"]; !ok {
+		return `
+			errs = []*errors.QueryError{
+				{
+					Message: "mutation resolvers are not present",
+				},
+			}
+
+			resp, _ := json.Marshal(graphql.Response{
+				Errors: errs,
+			})
+
+			w.Write(resp)
+			return
+		`
+	}
+	return `
+		m := MutationMeta{}
+		fields, err := m.Lookup(ctx, o.Selections, vars)
+		if err != nil {
+			errs = []*errors.QueryError{
+				err,
+			}
+		}
+		resp, _ := json.Marshal(graphql.Response{
+			Data: fields,
+			Errors: errs,
+		})
+
+		w.Write(resp)
+		return
+	`
 }

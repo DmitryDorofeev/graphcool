@@ -7,8 +7,8 @@ import (
 )
 
 type Request struct {
-	Query     string                 `json:"query"`
-	Variables map[string]interface{} `json:"variables"`
+	Query     string      `json:"query"`
+	Variables interface{} `json:"variables"`
 }
 
 type Response struct {

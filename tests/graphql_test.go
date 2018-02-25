@@ -17,7 +17,7 @@ import (
 var cases = []struct {
 	Request   string
 	Response  string
-	Variables map[string]string
+	Variables interface{}
 }{
 	// Simple query
 	{
@@ -83,6 +83,13 @@ var cases = []struct {
 	{
 		Request:  `query GetUserWithFriends($name: String) {getUser(name:$name){name}}`,
 		Response: `{"data":{"getUser":{"name":"Dmitry Dorofeev"}}}`,
+	},
+
+	// Variables as empty string (Graphiql)
+	{
+		Request:   `query GetUserWithFriends($name: String) {getUser(name:$name){name}}`,
+		Response:  `{"data":{"getUser":{"name":"Dmitry Dorofeev"}}}`,
+		Variables: "",
 	},
 
 	// Mutation
