@@ -90,6 +90,7 @@ func (s *BoolMeta) Marshal() ([]byte) {
 		func (h GraphqlHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			c := &graphcool.Context{
 				Request: r,
+				Writer: w,
 				Keys: nil,
 			}
 

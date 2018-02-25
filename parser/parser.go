@@ -127,7 +127,11 @@ func (v *structNamesVisitor) Visit(n ast.Node) (w ast.Visitor) {
 
 		// so dangerous
 		receiverName := n.Recv.List[0].Type.(*ast.StarExpr).X.(*ast.Ident).Name
-		v.methods[receiverName] = map[string]*ast.FuncDecl{n.Name.Name: n}
+		if v.methods[receiverName] == nil {
+			v.methods[receiverName] = make(map[string]*ast.FuncDecl)
+		}
+
+		v.methods[receiverName][n.Name.Name] = n
 	}
 
 	return v
