@@ -122,7 +122,7 @@ func generateComplexField(fieldName, typeName, methodName string) string {
 					f := %sMeta{
 					}
 
-					args := make(graphql.Arguments, 0)
+					args := make(graphcool.Arguments, 0)
 					for _, arg := range field.Arguments {
 						args[arg.Name.Name] = arg.Value.Value(vars)
 					}

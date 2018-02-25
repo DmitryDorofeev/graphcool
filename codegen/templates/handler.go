@@ -42,7 +42,6 @@ import (
 	"fmt"
 	"github.com/DmitryDorofeev/graphcool"
 	"github.com/DmitryDorofeev/graphcool/query"
-	"github.com/DmitryDorofeev/graphcool/graphql"
 )
 
 type GraphqlHandler struct {
@@ -95,7 +94,7 @@ func (s *BoolMeta) Marshal() ([]byte) {
 			}
 
 			parseError := graphcool.Errorf("Cannot parse request")
-			req := graphql.Request{}
+			req := graphcool.Request{}
 
 			var errs []*graphcool.QueryError
 			var vars map[string]interface{}
@@ -164,7 +163,7 @@ func handleQuery(structs parser.ParsedStructs) string {
 				},
 			}
 
-			resp, _ := json.Marshal(graphql.Response{
+			resp, _ := json.Marshal(graphcool.Response{
 				Errors: errs,
 			})
 
@@ -181,7 +180,7 @@ func handleQuery(structs parser.ParsedStructs) string {
 		}
 	}
 	if hasResolve {
-		resolve = "q.Value.Resolve(c, nil, graphql.Arguments{})"
+		resolve = "q.Value.Resolve(c, nil, graphcool.Arguments{})"
 	}
 
 	return fmt.Sprintf(`
@@ -193,7 +192,7 @@ func handleQuery(structs parser.ParsedStructs) string {
 				err,
 			}
 		}
-		resp, _ := json.Marshal(graphql.Response{
+		resp, _ := json.Marshal(graphcool.Response{
 			Data: fields,
 			Errors: errs,
 		})
@@ -213,7 +212,7 @@ func handleMutation(structs parser.ParsedStructs) string {
 				},
 			}
 
-			resp, _ := json.Marshal(graphql.Response{
+			resp, _ := json.Marshal(graphcool.Response{
 				Errors: errs,
 			})
 
@@ -230,7 +229,7 @@ func handleMutation(structs parser.ParsedStructs) string {
 		}
 	}
 	if hasResolve {
-		resolve = "m.Value.Resolve(c, nil, graphql.Arguments{})"
+		resolve = "m.Value.Resolve(c, nil, graphcool.Arguments{})"
 	}
 
 	return fmt.Sprintf(`
@@ -242,7 +241,7 @@ func handleMutation(structs parser.ParsedStructs) string {
 				err,
 			}
 		}
-		resp, _ := json.Marshal(graphql.Response{
+		resp, _ := json.Marshal(graphcool.Response{
 			Data: fields,
 			Errors: errs,
 		})

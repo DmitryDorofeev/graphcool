@@ -13,7 +13,7 @@ Define `Query` and  `Mutation` structs:
 ```go
 type Query struct {
 	Task    Task           `graphql:"todo:Task"`
-	GetUser graphql.Getter `graphql:"getUser(name:String!):User"`
+	GetUser graphcool.Getter `graphql:"getUser(name:String!):User"`
 }
 
 type Mutation struct {
@@ -37,12 +37,12 @@ Put your field schema into `graphql` tag
 Define Resolvers of your data structs:
 
 ```go
-func (u *User) Resolve(ctx context.Context, obj interface{}, args graphql.Arguments) *errors.QueryError {
+func (u *User) Resolve(c *graphcool.Context, obj interface{}, args graphcool.Arguments) *errors.QueryError {
 	u.Name = "Dmitry Dorofeev"
 	return nil
 }
 
-func (t *Task) Resolve(ctx context.Context, obj interface{}, args graphql.Arguments) *errors.QueryError {
+func (t *Task) Resolve(c *graphcool.Context, obj interface{}, args graphcool.Arguments) *errors.QueryError {
 	t.Title = "Awesome task"
 	return nil
 }
@@ -52,7 +52,7 @@ Define methods for `Mutation`
 
 ```go
 // updateUser(name:String!):User
-func (m *Mutation) UpdateUser(ctx context.Context, obj interface{}, args graphql.Arguments) (User, *errors.QueryError) {
+func (m *Mutation) UpdateUser(c *graphcool.Context, obj interface{}, args graphcool.Arguments) (User, *errors.QueryError) {
 	name, _ := args.GetString("name")
 	return User{
 		Name: name,
@@ -72,7 +72,7 @@ http.Handle("/graphql", models.NewHandler())
 ### Roadmap
 - [x] Mutations
 - [x] Queries with params
-- [ ] Custom context
+- [x] Custom context
 - [ ] Pass query name to resolvers
 - [ ] More docs :)
 - [ ] Generate file with graphql schema
