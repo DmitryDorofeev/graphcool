@@ -63,6 +63,12 @@ func (m *Mutation) UpdateUser(ctx context.Context, obj interface{}, args graphql
 
 Generate code for your data `graphcool ./filewithstructs.go`
 
+Use `NewHandler()` method
+
+```go
+http.Handle("/graphql", models.NewHandler())
+```
+
 ### Todo
 - [x] Mutations
 - [x] Queries with params

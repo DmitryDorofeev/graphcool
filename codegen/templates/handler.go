@@ -46,11 +46,11 @@ import (
 	"github.com/DmitryDorofeev/graphcool/graphql"
 )
 
-type GQLHandler struct {
+type GraphqlHandler struct {
 }
 
-func NewHandler() GQLHandler {
-	return GQLHandler{}
+func NewHandler() GraphqlHandler {
+	return GraphqlHandler{}
 }
 
 type Meta struct {
@@ -89,7 +89,7 @@ func (s *BoolMeta) Marshal() ([]byte) {
 	handlerTmpl += generateTypes(data)
 
 	handlerTmpl += `
-func (h GQLHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h GraphqlHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	parseError := errors.Errorf("Cannot parse request")

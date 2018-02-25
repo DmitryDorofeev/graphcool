@@ -96,7 +96,7 @@ var cases = []struct {
 }
 
 func TestGetQuery(t *testing.T) {
-	ts := httptest.NewServer(GQLHandler{})
+	ts := httptest.NewServer(NewHandler())
 
 	for _, testCase := range cases {
 		vars, _ := json.Marshal(testCase.Variables)
@@ -115,7 +115,7 @@ func TestGetQuery(t *testing.T) {
 }
 
 func TestPostQuery(t *testing.T) {
-	ts := httptest.NewServer(GQLHandler{})
+	ts := httptest.NewServer(NewHandler())
 	for _, testCase := range cases {
 		vars, _ := json.Marshal(testCase.Variables)
 		body := []byte(fmt.Sprintf(`{"query":"%s","variables":%s}`, testCase.Request, vars))
