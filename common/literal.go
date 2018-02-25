@@ -5,19 +5,19 @@ import (
 	"strings"
 	"text/scanner"
 
-	"github.com/DmitryDorofeev/graphcool/errors"
+	"github.com/DmitryDorofeev/graphcool"
 )
 
 type Literal interface {
 	Value(vars map[string]interface{}) interface{}
 	String() string
-	Location() errors.Location
+	Location() graphcool.Location
 }
 
 type BasicLit struct {
 	Type rune
 	Text string
-	Loc  errors.Location
+	Loc  graphcool.Location
 }
 
 func (lit *BasicLit) Value(vars map[string]interface{}) interface{} {
@@ -62,13 +62,13 @@ func (lit *BasicLit) String() string {
 	return lit.Text
 }
 
-func (lit *BasicLit) Location() errors.Location {
+func (lit *BasicLit) Location() graphcool.Location {
 	return lit.Loc
 }
 
 type ListLit struct {
 	Entries []Literal
-	Loc     errors.Location
+	Loc     graphcool.Location
 }
 
 func (lit *ListLit) Value(vars map[string]interface{}) interface{} {
@@ -87,13 +87,13 @@ func (lit *ListLit) String() string {
 	return "[" + strings.Join(entries, ", ") + "]"
 }
 
-func (lit *ListLit) Location() errors.Location {
+func (lit *ListLit) Location() graphcool.Location {
 	return lit.Loc
 }
 
 type ObjectLit struct {
 	Fields []*ObjectLitField
-	Loc    errors.Location
+	Loc    graphcool.Location
 }
 
 type ObjectLitField struct {
@@ -117,12 +117,12 @@ func (lit *ObjectLit) String() string {
 	return "{" + strings.Join(entries, ", ") + "}"
 }
 
-func (lit *ObjectLit) Location() errors.Location {
+func (lit *ObjectLit) Location() graphcool.Location {
 	return lit.Loc
 }
 
 type NullLit struct {
-	Loc errors.Location
+	Loc graphcool.Location
 }
 
 func (lit *NullLit) Value(vars map[string]interface{}) interface{} {
@@ -133,13 +133,13 @@ func (lit *NullLit) String() string {
 	return "null"
 }
 
-func (lit *NullLit) Location() errors.Location {
+func (lit *NullLit) Location() graphcool.Location {
 	return lit.Loc
 }
 
 type Variable struct {
 	Name string
-	Loc  errors.Location
+	Loc  graphcool.Location
 }
 
 func (v Variable) Value(vars map[string]interface{}) interface{} {
@@ -150,7 +150,7 @@ func (v Variable) String() string {
 	return "$" + v.Name
 }
 
-func (v *Variable) Location() errors.Location {
+func (v *Variable) Location() graphcool.Location {
 	return v.Loc
 }
 

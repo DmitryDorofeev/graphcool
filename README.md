@@ -6,7 +6,7 @@
 
 First things first, install `graphcool`
 
-`go get github.com/DmitryDorofeev/graphcool`
+`go get github.com/DmitryDorofeev/graphcool/...`
 
 Define `Query` and  `Mutation` structs:
 
@@ -69,11 +69,13 @@ Use `NewHandler()` method
 http.Handle("/graphql", models.NewHandler())
 ```
 
-### Todo
+### Roadmap
 - [x] Mutations
 - [x] Queries with params
-- [ ] Generate file with graphql schema
+- [ ] Custom context
 - [ ] Pass query name to resolvers
+- [ ] More docs :)
+- [ ] Generate file with graphql schema
 - [ ] Logging
 - [ ] Schema queries
 - [ ] Nullable types

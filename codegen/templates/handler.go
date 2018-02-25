@@ -37,11 +37,10 @@ import (
 	"net/http"
 	"io/ioutil"
 	"encoding/json"
-	"context"
 	"bytes"
 	"strconv"
 	"fmt"
-	"github.com/DmitryDorofeev/graphcool/errors"
+	"github.com/DmitryDorofeev/graphcool"
 	"github.com/DmitryDorofeev/graphcool/query"
 	"github.com/DmitryDorofeev/graphcool/graphql"
 )
@@ -90,12 +89,15 @@ func (s *BoolMeta) Marshal() ([]byte) {
 
 	handlerTmpl += fmt.Sprintf(`
 		func (h GraphqlHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-			ctx := r.Context()
+			c := &graphcool.Context{
+				Request: r,
+				Keys: nil,
+			}
 
-			parseError := errors.Errorf("Cannot parse request")
+			parseError := graphcool.Errorf("Cannot parse request")
 			req := graphql.Request{}
 
-			var errs []*errors.QueryError
+			var errs []*graphcool.QueryError
 			var vars map[string]interface{}
 			switch r.Method {
 				case http.MethodGet:
@@ -115,7 +117,7 @@ func (s *BoolMeta) Marshal() ([]byte) {
 
 					err = json.Unmarshal(body, &req)
 					if err != nil {
-						errBytes, _ := json.Marshal(errors.Errorf(err.Error()))
+						errBytes, _ := json.Marshal(graphcool.Errorf(err.Error()))
 						w.Write(errBytes)
 						return
 					}
@@ -153,9 +155,10 @@ func (s *BoolMeta) Marshal() ([]byte) {
 }
 
 func handleQuery(structs parser.ParsedStructs) string {
-	if _, ok := structs["Query"]; !ok {
+	s, ok := structs["Query"]
+	if !ok {
 		return `
-			errs = []*errors.QueryError{
+			errs = []*graphcool.QueryError{
 				{
 					Message: "query resolvers are not present",
 				},
@@ -169,11 +172,24 @@ func handleQuery(structs parser.ParsedStructs) string {
 			return
 		`
 	}
-	return `
+
+	var resolve string
+	var hasResolve bool
+	for _, method := range s.Methods {
+		if method.Name == "Resolve" {
+			hasResolve = true
+		}
+	}
+	if hasResolve {
+		resolve = "q.Value.Resolve(c, nil, graphql.Arguments{})"
+	}
+
+	return fmt.Sprintf(`
 		q := QueryMeta{}
-		fields, err := q.Lookup(ctx, o.Selections, vars)
+		%s
+		fields, err := q.Lookup(c, o.Selections, vars)
 		if err != nil {
-			errs = []*errors.QueryError{
+			errs = []*graphcool.QueryError{
 				err,
 			}
 		}
@@ -184,13 +200,14 @@ func handleQuery(structs parser.ParsedStructs) string {
 
 		w.Write(resp)
 		return
-	`
+	`, resolve)
 }
 
 func handleMutation(structs parser.ParsedStructs) string {
-	if _, ok := structs["Mutation"]; !ok {
+	s, ok := structs["Mutation"]
+	if !ok {
 		return `
-			errs = []*errors.QueryError{
+			errs = []*graphcool.QueryError{
 				{
 					Message: "mutation resolvers are not present",
 				},
@@ -204,11 +221,24 @@ func handleMutation(structs parser.ParsedStructs) string {
 			return
 		`
 	}
-	return `
+
+	var resolve string
+	var hasResolve bool
+	for _, method := range s.Methods {
+		if method.Name == "Resolve" {
+			hasResolve = true
+		}
+	}
+	if hasResolve {
+		resolve = "m.Value.Resolve(c, nil, graphql.Arguments{})"
+	}
+
+	return fmt.Sprintf(`
 		m := MutationMeta{}
-		fields, err := m.Lookup(ctx, o.Selections, vars)
+		%s
+		fields, err := m.Lookup(c, o.Selections, vars)
 		if err != nil {
-			errs = []*errors.QueryError{
+			errs = []*graphcool.QueryError{
 				err,
 			}
 		}
@@ -219,5 +249,5 @@ func handleMutation(structs parser.ParsedStructs) string {
 
 		w.Write(resp)
 		return
-	`
+	`, resolve)
 }

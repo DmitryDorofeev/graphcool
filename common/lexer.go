@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"text/scanner"
 
-	"github.com/DmitryDorofeev/graphcool/errors"
+	"github.com/DmitryDorofeev/graphcool"
 )
 
 type syntaxError string
@@ -17,7 +17,7 @@ type Lexer struct {
 
 type Ident struct {
 	Name string
-	Loc  errors.Location
+	Loc  graphcool.Location
 }
 
 func New(sc *scanner.Scanner) *Lexer {
@@ -26,12 +26,12 @@ func New(sc *scanner.Scanner) *Lexer {
 	return l
 }
 
-func (l *Lexer) CatchSyntaxError(f func()) (errRes *errors.QueryError) {
+func (l *Lexer) CatchSyntaxError(f func()) (errRes *graphcool.QueryError) {
 	defer func() {
 		if err := recover(); err != nil {
 			if err, ok := err.(syntaxError); ok {
-				errRes = errors.Errorf("syntax error: %s", err)
-				errRes.Locations = []errors.Location{l.Location()}
+				errRes = graphcool.Errorf("syntax error: %s", err)
+				errRes.Locations = []graphcool.Location{l.Location()}
 				return
 			}
 			panic(err)
@@ -114,8 +114,8 @@ func (l *Lexer) SyntaxError(message string) {
 	panic(syntaxError(message))
 }
 
-func (l *Lexer) Location() errors.Location {
-	return errors.Location{
+func (l *Lexer) Location() graphcool.Location {
+	return graphcool.Location{
 		Line:   l.sc.Line,
 		Column: l.sc.Column,
 	}

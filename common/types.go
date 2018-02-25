@@ -1,7 +1,7 @@
 package common
 
 import (
-	"github.com/DmitryDorofeev/graphcool/errors"
+	"github.com/DmitryDorofeev/graphcool"
 )
 
 type Type interface {
@@ -51,7 +51,7 @@ func parseNullType(l *Lexer) Type {
 
 type Resolver func(name string) Type
 
-func ResolveType(t Type, resolver Resolver) (Type, *errors.QueryError) {
+func ResolveType(t Type, resolver Resolver) (Type, *graphcool.QueryError) {
 	switch t := t.(type) {
 	case *List:
 		ofType, err := ResolveType(t.OfType, resolver)
@@ -68,9 +68,9 @@ func ResolveType(t Type, resolver Resolver) (Type, *errors.QueryError) {
 	case *TypeName:
 		refT := resolver(t.Name)
 		if refT == nil {
-			err := errors.Errorf("Unknown type %q.", t.Name)
+			err := graphcool.Errorf("Unknown type %q.", t.Name)
 			err.Rule = "KnownTypeNames"
-			err.Locations = []errors.Location{t.Loc}
+			err.Locations = []graphcool.Location{t.Loc}
 			return nil, err
 		}
 		return refT, nil

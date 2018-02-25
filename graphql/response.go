@@ -3,7 +3,7 @@ package graphql
 import (
 	"encoding/json"
 
-	"github.com/DmitryDorofeev/graphcool/errors"
+	"github.com/DmitryDorofeev/graphcool"
 )
 
 type Request struct {
@@ -12,6 +12,6 @@ type Request struct {
 }
 
 type Response struct {
-	Data   json.RawMessage      `json:"data,omitempty"`
-	Errors []*errors.QueryError `json:"errors,omitempty"`
+	Data   json.RawMessage         `json:"data,omitempty"`
+	Errors []*graphcool.QueryError `json:"errors,omitempty"`
 }

@@ -1,16 +1,14 @@
 package common
 
-import (
-	"github.com/DmitryDorofeev/graphcool/errors"
-)
+import "github.com/DmitryDorofeev/graphcool"
 
 type InputValue struct {
 	Name    Ident
 	Type    Type
 	Default Literal
 	Desc    string
-	Loc     errors.Location
-	TypeLoc errors.Location
+	Loc     graphcool.Location
+	TypeLoc graphcool.Location
 }
 
 type InputValueList []*InputValue

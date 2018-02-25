@@ -5,8 +5,8 @@ import (
 	"strings"
 	"text/scanner"
 
+	"github.com/DmitryDorofeev/graphcool"
 	"github.com/DmitryDorofeev/graphcool/common"
-	"github.com/DmitryDorofeev/graphcool/errors"
 )
 
 type Document struct {
@@ -42,7 +42,7 @@ type Operation struct {
 	Vars       common.InputValueList
 	Selections []Selection
 	Directives common.DirectiveList
-	Loc        errors.Location
+	Loc        graphcool.Location
 }
 
 type OperationType string
@@ -62,7 +62,7 @@ type FragmentDecl struct {
 	Fragment
 	Name       common.Ident
 	Directives common.DirectiveList
-	Loc        errors.Location
+	Loc        graphcool.Location
 }
 
 type Selection interface {
@@ -75,26 +75,26 @@ type Field struct {
 	Arguments       common.ArgumentList
 	Directives      common.DirectiveList
 	Selections      []Selection
-	SelectionSetLoc errors.Location
+	SelectionSetLoc graphcool.Location
 }
 
 type InlineFragment struct {
 	Fragment
 	Directives common.DirectiveList
-	Loc        errors.Location
+	Loc        graphcool.Location
 }
 
 type FragmentSpread struct {
 	Name       common.Ident
 	Directives common.DirectiveList
-	Loc        errors.Location
+	Loc        graphcool.Location
 }
 
 func (Field) isSelection()          {}
 func (InlineFragment) isSelection() {}
 func (FragmentSpread) isSelection() {}
 
-func Parse(queryString string) (*Document, *errors.QueryError) {
+func Parse(queryString string) (*Document, *graphcool.QueryError) {
 	sc := &scanner.Scanner{
 		Mode: scanner.ScanIdents | scanner.ScanInts | scanner.ScanFloats | scanner.ScanStrings,
 	}

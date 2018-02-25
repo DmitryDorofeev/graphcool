@@ -11,9 +11,9 @@ import (
 
 func generateLookup(typeName, cases string) string {
 	return fmt.Sprintf(`
-		func (s *%sMeta) Lookup(ctx context.Context, selections []query.Selection, vars map[string] interface{}) ([]byte, *errors.QueryError) {
+		func (s *%sMeta) Lookup(c *graphcool.Context, selections []query.Selection, vars map[string] interface{}) ([]byte, *graphcool.QueryError) {
 			if len(selections) == 0 {
-				return nil, errors.Errorf("Objects must have selections (field %s has no selections)")
+				return nil, graphcool.Errorf("Objects must have selections (field %s has no selections)")
 			}
 			res := make([][]byte, 0)
 			for _, selection := range selections {
@@ -25,19 +25,19 @@ func generateLookup(typeName, cases string) string {
 				switch field.Name.Name {
 					%s
 					default:
-						return nil, errors.Errorf("unknown field " + field.Name.Name)
+						return nil, graphcool.Errorf("unknown field " + field.Name.Name)
 				}
 			}
-			return s.Marshal(ctx, selections, res)
+			return s.Marshal(c, selections, res)
 		}
 	`, typeName, typeName, cases)
 }
 
 func generateListLookup(typeName, itemType string) string {
 	return fmt.Sprintf(`
-		func (s *%sMeta) Lookup(ctx context.Context, selections []query.Selection, vars map[string]interface{}) ([]byte, *errors.QueryError) {
+		func (s *%sMeta) Lookup(c *graphcool.Context, selections []query.Selection, vars map[string]interface{}) ([]byte, *graphcool.QueryError) {
 			if len(selections) == 0 {
-				return nil, errors.Errorf("Objects must have selections (field %s has no selections)")
+				return nil, graphcool.Errorf("Objects must have selections (field %s has no selections)")
 			}
 			res := make([][]byte, 0)
 			for _, item := range s.Value {
@@ -45,10 +45,10 @@ func generateListLookup(typeName, itemType string) string {
 					Value: item,
 				}
 
-				b, _ := f.Lookup(ctx, selections, vars)
+				b, _ := f.Lookup(c, selections, vars)
 				res = append(res, b)
 			}
-			return s.Marshal(ctx, selections, res)
+			return s.Marshal(c, selections, res)
 		}
 	`, typeName, typeName, itemType)
 }
@@ -113,9 +113,9 @@ func generateField(t types.Type, n, typeName, fieldName string) (cases string) {
 }
 
 func generateComplexField(fieldName, typeName, methodName string) string {
-	exec := "err := f.Value.Resolve(ctx, s.Value, args)"
+	exec := "err := f.Value.Resolve(c, s.Value, args)"
 	if methodName != "" {
-		exec = fmt.Sprintf("val, err := s.Value.%s(ctx, s.Value, args)\nf.Value = val", methodName)
+		exec = fmt.Sprintf("val, err := s.Value.%s(c, s.Value, args)\nf.Value = val", methodName)
 	}
 	return fmt.Sprintf(`
 				case "%s":
@@ -132,7 +132,7 @@ func generateComplexField(fieldName, typeName, methodName string) string {
 						return nil, err
 					}
 
-					innerField, err := f.Lookup(ctx, field.Selections, vars)
+					innerField, err := f.Lookup(c, field.Selections, vars)
 					if err != nil {
 						return nil, err
 					}

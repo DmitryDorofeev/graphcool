@@ -1,9 +1,7 @@
 package tests
 
 import (
-	"context"
-
-	"github.com/DmitryDorofeev/graphcool/errors"
+	"github.com/DmitryDorofeev/graphcool"
 	"github.com/DmitryDorofeev/graphcool/graphql"
 )
 
@@ -16,7 +14,7 @@ type Mutation struct {
 }
 
 // updateUser(name:String!):User
-func (m *Mutation) UpdateUser(ctx context.Context, obj interface{}, args graphql.Arguments) (User, *errors.QueryError) {
+func (m *Mutation) UpdateUser(c *graphcool.Context, obj interface{}, args graphql.Arguments) (User, *graphcool.QueryError) {
 	name, _ := args.GetString("name")
 	return User{
 		Name: name + "_updated",
@@ -30,7 +28,7 @@ type Task struct {
 	User        User   `graphql:"user:User"`
 }
 
-func (t *Task) Resolve(ctx context.Context, obj interface{}, args graphql.Arguments) *errors.QueryError {
+func (t *Task) Resolve(c *graphcool.Context, obj interface{}, args graphql.Arguments) *graphcool.QueryError {
 	t.Title = "test task"
 	return nil
 }
@@ -40,7 +38,7 @@ type User struct {
 	Friends graphql.Field `graphql:"friends:[Friends]"`
 }
 
-func (u *User) Resolve(ctx context.Context, obj interface{}, args graphql.Arguments) *errors.QueryError {
+func (u *User) Resolve(c *graphcool.Context, obj interface{}, args graphql.Arguments) *graphcool.QueryError {
 	name, err := args.GetString("name")
 	if err != nil {
 		u.Name = "Dmitry Dorofeev"
@@ -53,7 +51,7 @@ func (u *User) Resolve(ctx context.Context, obj interface{}, args graphql.Argume
 
 type Friends []User
 
-func (f *Friends) Resolve(ctx context.Context, obj interface{}, args graphql.Arguments) *errors.QueryError {
+func (f *Friends) Resolve(c *graphcool.Context, obj interface{}, args graphql.Arguments) *graphcool.QueryError {
 	name := obj.(User).Name
 	*f = append(*f, User{Name: "First Friend of " + name}, User{Name: "Second Friend of " + name})
 	return nil

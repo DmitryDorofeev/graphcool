@@ -4,7 +4,7 @@ import "fmt"
 
 func generateObjectMarshaler(typeName string) string {
 	return fmt.Sprintf(`
-			func (s *%sMeta) Marshal(ctx context.Context, selections []query.Selection, fields [][]byte) ([]byte, *errors.QueryError) {
+			func (s *%sMeta) Marshal(c *graphcool.Context, selections []query.Selection, fields [][]byte) ([]byte, *graphcool.QueryError) {
 				buf := bytes.Buffer{}
 				buf.WriteString("{")
 				for i, value := range fields {
@@ -29,7 +29,7 @@ func generateObjectMarshaler(typeName string) string {
 
 func generateListMarshaler(typeName string) string {
 	return fmt.Sprintf(`
-			func (s *%sMeta) Marshal(ctx context.Context, selections []query.Selection, fields [][]byte) ([]byte, *errors.QueryError) {
+			func (s *%sMeta) Marshal(c *graphcool.Context, selections []query.Selection, fields [][]byte) ([]byte, *graphcool.QueryError) {
 				buf := bytes.Buffer{}
 				buf.WriteString("[")
 				for i, value := range fields {

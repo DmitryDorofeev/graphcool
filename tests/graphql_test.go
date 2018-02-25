@@ -140,6 +140,25 @@ func TestPostQuery(t *testing.T) {
 	}
 }
 
+func BenchmarkPostQuery(b *testing.B) {
+	ts := httptest.NewServer(NewHandler())
+	for i := 0; i < b.N; i++ {
+		vars, _ := json.Marshal(cases[0].Variables)
+		body := []byte(fmt.Sprintf(`{"query":"%s","variables":%s}`, cases[0].Request, vars))
+		resp, err := http.Post(ts.URL, "application/json", bytes.NewBuffer(body))
+		if err != nil {
+			b.Error("error response")
+		}
+
+		data, _ := ioutil.ReadAll(resp.Body)
+
+		if string(data) != cases[0].Response {
+			b.Errorf("expected %s, received %s for request %s", cases[0].Response, data, cases[0].Request)
+		}
+		resp.Body.Close()
+	}
+}
+
 func TestMain(m *testing.M) {
 	err := codegen.Generate("./models.go", "./generated.go")
 	if err != nil {
